@@ -1,5 +1,5 @@
 {
-  "name": "PH_A08-WassappDocs_Server-ExpressJS.MongoDB.JWT",
+  "name": "MediQueue_ServerSide-ExpressJS.MongoDB.JWT",
   "version": "1.0.0",
   "description": "",
   "packageManager": "pnpm@11.0.9",
