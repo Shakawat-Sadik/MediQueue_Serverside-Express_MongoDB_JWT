@@ -139,7 +139,7 @@ app.get("/doctors/:slug", async (req, res) => {
 app.get("/appointments", async (req, res) => {
   try {
     const db = await connectToDB();
-    const appointmentCol = db
+    const appointmentCol = db.collection("appointments")
     
     const { email } = req.query;
     const filter = {};
