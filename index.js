@@ -139,8 +139,16 @@ app.get("/doctors/:slug", async (req, res) => {
 app.get("/appointments", async (req, res) => {
   try {
     const db = await connectToDB();
-    const appointmentCol = db.collection("appointments");
-    const result = await appointmentCol.find().toArray();
+    const appointmentCol = db
+    
+    const { email } = req.query;
+    const filter = {};
+    if (email) {
+      filter.userEmail = email;
+    }
+
+    const result = await appointmentCol.find(filter).sort({ createdAt: -1 }).toArray();
+    
     res.status(200).json({ success: true, message: "Loaded all appointments", result });
   } catch (e) {
     res.status(500).json({ success: false, message: "Couldn't load the appointment data", error: e.message });
@@ -215,6 +223,40 @@ app.delete("/appointments/:id", async (req, res) => {
     res.status(200).json({ success: true, message: "Appointment deleted successfully", result });
   } catch (e) {
     res.status(500).json({ success: false, message: "Couldn't cancel your booking", error: e.message });
+  }
+});
+
+app.post("/reviews", async (req, res) => {
+  try {
+    const db = await connectToDB();
+    const doctorsCol = db.collection("doctors");
+    const reviewData = req.body;
+
+    reviewData.createdAt = new Date();
+
+    // 1. Push the review into the doctor's reviews array
+    const updateResult = await doctorsCol.updateOne(
+      { slug: reviewData.doctorSlug },
+      { $push: { reviews: reviewData } }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: "Doctor not found" });
+    }
+
+    // 2. Recalculate the doctor's average rating
+    const doctor = await doctorsCol.findOne({ slug: reviewData.doctorSlug });
+    const totalRating = doctor.reviews.reduce((sum, r) => sum + r.rating, 0);
+    const avgRating = Math.round((totalRating / doctor.reviews.length) * 10) / 10;
+
+    await doctorsCol.updateOne(
+      { slug: reviewData.doctorSlug },
+      { $set: { rating: avgRating } }
+    );
+
+    res.status(201).json({ success: true, message: "Review added successfully!" });
+  } catch (e) {
+    res.status(500).json({ success: false, message: "Couldn't add review", error: e.message });
   }
 });
 
