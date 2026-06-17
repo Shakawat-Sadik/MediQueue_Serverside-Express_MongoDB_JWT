@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 dotenv.config();
 
@@ -10,6 +11,10 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 const uri = process.env.MONGODB_URI;
+const url = 
+    process.env.NODE_ENV === "production" ?
+    process.env.CLIENT_URL : 
+    "http://localhost:3000"
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -18,6 +23,12 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+const JWKS = createRemoteJWKSet(
+  new URL(
+    `${url}/api/auth/jwks`
+  )
+)
 
 app.use(
   cors({
@@ -123,6 +134,7 @@ app.get("/doctors", async (req, res) => {
 });
 
 app.get("/doctors/:slug", async (req, res) => {
+
   try {
     const db = await connectToDB();
     const doctorsCol = db.collection("doctors");
@@ -136,7 +148,42 @@ app.get("/doctors/:slug", async (req, res) => {
   }
 });
 
-app.get("/appointments", async (req, res) => {
+const verifyToken = async (req, res, next) => {
+
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({ success: false, error: "Unauthorized entry is intercepted" });
+    }
+    
+    const token = authHeader.split(" ")[1];
+
+    try {
+      const { payload } = await jwtVerify(token, JWKS);
+      // so your downstream routes can use it (e.g., req.user.id)
+      req.user = payload; 
+      
+      const x = JSON.stringify(payload, null, 2);
+      // 5. Call next() to pass control to the actual route handler
+      console.log(x);
+      next();
+
+    } catch (e) {
+      return res.status(403).json({ success: false, error: e.message });
+    }
+  } catch (e){
+    return res.status(401).json({ success: false, error: e.message });
+  }
+}
+
+
+app.get("/appointments", verifyToken, async (req, res) => {
+
+  if (!req.headers.authorization) {
+    return res.status(402).json({ success: false, error: "Unauthorized entry is intercepted" });
+  }
+
   try {
     const db = await connectToDB();
     const appointmentCol = db.collection("appointments")
@@ -155,7 +202,12 @@ app.get("/appointments", async (req, res) => {
   }
 });
 
-app.get("/appointments/:id", async (req, res) => {
+app.get("/appointments/:id", verifyToken, async (req, res) => {
+
+  if (!req.headers.authorization) {
+    return res.status(402).json({ success: false, error: "Unauthorized entry is intercepted" });
+  }
+
   try {
     const db = await connectToDB();
     const appointmentCol = db.collection("appointments");
@@ -169,7 +221,12 @@ app.get("/appointments/:id", async (req, res) => {
   }
 });
 
-app.post("/appointments", async (req, res) => {
+app.post("/appointments", verifyToken, async (req, res) => {
+
+  if (!req.headers.authorization) {
+    return res.status(402).json({ success: false, error: "Unauthorized entry is intercepted" });
+  }
+
   try {
     const db = await connectToDB();
     const appointmentCol = db.collection("appointments");
@@ -183,7 +240,12 @@ app.post("/appointments", async (req, res) => {
   }
 });
 
-app.patch("/appointments/:id", async (req, res) => {
+app.patch("/appointments/:id", verifyToken, async (req, res) => {
+
+  if (!req.headers.authorization) {
+    return res.status(402).json({ success: false, error: "Unauthorized entry is intercepted" });
+  }
+
   try {
     const db = await connectToDB();
     const appointmentCol = db.collection("appointments");
@@ -210,7 +272,12 @@ app.patch("/appointments/:id", async (req, res) => {
   }
 });
 
-app.delete("/appointments/:id", async (req, res) => {
+app.delete("/appointments/:id", verifyToken, async (req, res) => {
+  
+  if (!req.headers.authorization) {
+    return res.status(402).json({ success: false, error: "Unauthorized entry is intercepted" });
+  }
+
   try {
     const db = await connectToDB();
     const appointmentCol = db.collection("appointments");
@@ -226,7 +293,12 @@ app.delete("/appointments/:id", async (req, res) => {
   }
 });
 
-app.post("/reviews", async (req, res) => {
+app.post("/reviews", verifyToken, async (req, res) => {
+
+  if (!req.headers.authorization) {
+    return res.status(402).json({ success: false, error: "Unauthorized entry is intercepted" });
+  }
+
   try {
     const db = await connectToDB();
     const doctorsCol = db.collection("doctors");
