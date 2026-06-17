@@ -164,9 +164,9 @@ const verifyToken = async (req, res, next) => {
       // so your downstream routes can use it (e.g., req.user.id)
       req.user = payload; 
       
-      const x = JSON.stringify(payload, null, 2);
+      // const x = JSON.stringify(payload, null, 2);
       // 5. Call next() to pass control to the actual route handler
-      console.log(x);
+      // console.log(x);
       next();
 
     } catch (e) {
