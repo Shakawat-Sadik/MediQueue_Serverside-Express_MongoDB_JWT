@@ -30,11 +30,12 @@ const JWKS = createRemoteJWKSet(
   )
 )
 
+const clientUrl = process.env.CLIENT_URL?.replace(/\/$/, "");
 app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      process.env.CLIENT_URL, // your Vercel URL when deployed
+      clientUrl, // your Vercel URL when deployed
     ].filter(Boolean),
     credentials: true, // needed if you send cookies/JWT later
   }),
